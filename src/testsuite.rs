@@ -4,18 +4,20 @@ mod unit {
     use crate::encoding::*;
     use std::fs::File;
     use std::io::prelude::*;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use ntest::timeout;
 
     macro_rules! dict {
         ($pairs:expr) => {
             {
-                let mut dict:HashMap<String, BeNode> = HashMap::new();
+                let dict = $pairs;
 
-                for (key, val) in $pairs {
-                    dict.insert(String::from(key), BeNode::STR(String::from(val)));
-                }
-                dict
+                dict.iter()
+                    .map(|(key, val)| 
+                            (String::from(*key),
+                             BeNode::STR(String::from(*val)))
+                        )
+                    .collect::<Vec<(String, BeNode)>>()
             }
         }
     }
@@ -125,8 +127,25 @@ mod unit {
         enc_dict_three: dec_dict_three: (
            BeNode::DICT(dict!(vec![("hola", "Pedro"),
                                    ("hello", "William"), 
+                                   ("s", "o"), 
                                    ("|", "|")])),
-           "d4:hola5:Pedro5:hello7:William1:|1:|e"
+           "d4:hola5:Pedro5:hello7:William1:s1:o1:|1:|e"
+        ),
+        enc_dict_mix: dec_dict_mix: (
+           BeNode::DICT(vec![(String::from("hola"),
+                              BeNode::STR(String::from("Pedro"))
+                             ),
+                             (String::from("nb"),
+                              BeNode::NUM(10)
+                             ),
+                             (String::from("list"),
+                              BeNode::LIST(vec![BeNode::NUM(11), BeNode::NUM(12)])
+                             ),
+                             (String::from("dict"),
+                              BeNode::DICT(dict!(vec![("hola", "Pedro")])),
+                             ),
+                             ]),     
+           "d4:hola5:Pedro2:nbi10e4:listli11ei12ee4:dictd4:hola5:Pedroee"
         ),
     }
 }

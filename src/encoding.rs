@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 // TODO recover from overflow
 macro_rules! _i64_overflow_check {
         ($args:expr) => {
@@ -19,7 +17,7 @@ pub enum BeNode
     NUM(i64),
     STR(String),
     LIST(Vec<BeNode>),
-    DICT(HashMap<String, BeNode>),
+    DICT(Vec<(String, BeNode)>),
 }
 
 pub fn be_decode(input: String) -> BeNode
@@ -106,13 +104,29 @@ pub fn be_decode_list(buffer: &Vec<char>, idx: &mut usize) -> BeNode
     BeNode::LIST(list)
 }
 
-pub fn be_decode_dict(_buffer: &Vec<char>, idx: &mut usize) -> BeNode
+pub fn be_decode_dict(buffer: &Vec<char>, idx: &mut usize) -> BeNode
 {
     // eat 'd'
     *idx += 1;
 
-    // TODO eat pairs using be_decode_rec until 'e'
-    BeNode::DICT(HashMap::new())
+    let mut dict:Vec<(String, BeNode)> = vec![];
+    while *idx < buffer.len() {
+        match buffer[*idx] {
+            'e' => break,
+            // eat using be_decode_rec
+            _ => dict.push(
+                    ( match be_decode_str(buffer, idx) {
+                          BeNode::STR(string) => string,
+                          _ => panic!("failed to decode. Key should be a string.")
+                        },
+                    be_decode_rec(buffer, idx))
+                    ),
+        }
+    }
+
+    // eat 'e'
+    *idx += 1;
+    BeNode::DICT(dict)
 }
 
 // looking obscure but it is simple
