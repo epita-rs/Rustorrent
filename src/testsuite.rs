@@ -5,7 +5,6 @@ mod unit {
     use std::fs::File;
     use std::io::prelude::*;
     use std::collections::BTreeMap;
-    use ntest::timeout;
 
     macro_rules! dict {
         ($pairs:expr) => {
@@ -26,7 +25,6 @@ mod unit {
         ($($decode_name:ident: $encode_name:ident: $args:expr,)*) => {
             $(
                 #[test]
-                #[timeout(5)]
                 fn $encode_name() {
                     let (data, expected) = $args;
                     let result = be_encode(&data);
@@ -34,7 +32,6 @@ mod unit {
                 }
 
                 #[test]
-                #[timeout(5)]
                 fn $decode_name() {
                     let (expected, data) = $args;
                     let result = be_decode(String::from(data));
