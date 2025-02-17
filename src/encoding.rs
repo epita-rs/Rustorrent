@@ -106,7 +106,7 @@ pub fn be_decode_list(buffer: &Vec<char>, idx: &mut usize) -> BeNode
     BeNode::LIST(list)
 }
 
-pub fn be_decode_dict(buffer: &Vec<char>, idx: &mut usize) -> BeNode
+pub fn be_decode_dict(_buffer: &Vec<char>, idx: &mut usize) -> BeNode
 {
     // eat 'd'
     *idx += 1;
