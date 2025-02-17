@@ -5,6 +5,7 @@ mod unit {
     use std::fs::File;
     use std::io::prelude::*;
     use std::collections::HashMap;
+    use ntest::timeout;
 
     macro_rules! dict {
         ($pairs:expr) => {
@@ -20,12 +21,21 @@ mod unit {
     }
 
     macro_rules! encoding_tests {
-        ($($name:ident: $args:expr,)*) => {
+        ($($decode_name:ident: $encode_name:ident: $args:expr,)*) => {
             $(
                 #[test]
-                fn $name() {
+                #[timeout(5)]
+                fn $encode_name() {
                     let (data, expected) = $args;
                     let result = be_encode(&data);
+                    assert_eq!(result, expected);
+                }
+
+                #[test]
+                #[timeout(5)]
+                fn $decode_name() {
+                    let (expected, data) = $args;
+                    let result = be_decode(String::from(data));
                     assert_eq!(result, expected);
                 }
             )*
@@ -33,7 +43,7 @@ mod unit {
     }
 
     // TODO for later use
-    macro_rules! test_from_files {
+    macro_rules! _test_from_files {
         ($($name:ident: $args:expr,)*) => {
             $(
                 #[test]
@@ -52,67 +62,67 @@ mod unit {
     }
     // =====================================================================
 
-        encoding_tests! {
-        number_easy: (
+    encoding_tests! {
+        enc_number_easy:dec_number_easy: (
         BeNode::NUM(1234),
         "i1234e"
         ),
-        number_medium: (
+        enc_number_medium:dec_number_medium: (
         BeNode::NUM(123456789),
         "i123456789e"
         ),
-        number_neg: (
+        enc_number_neg:dec_number_neg: (
         BeNode::NUM(-1234),
         "i-1234e"
         ),
-        number_zero: (
+        enc_number_zero:dec_number_zero: (
         BeNode::NUM(0),
         "i0e"
         ),
-        number_neg_zero: (
+        enc_number_neg_zero:dec_number_neg_zero: (
         BeNode::NUM(-0),
         "i0e"
         ),
-        string_start: (
+        enc_string_start:dec_string_start: (
         BeNode::STR(String::from("hola")),
         "4:hola"
         ),
-        string_long: (
+        enc_string_long:dec_string_long: (
         BeNode::STR(String::from("aaabbbcccdddeeefffggghhhjjj")),
         "27:aaabbbcccdddeeefffggghhhjjj"
         ),
-        string_number: (
+        enc_string_number:dec_string_number: (
         BeNode::STR(String::from("123456")),
         "6:123456"
         ),
-        string_single: (
+        enc_string_single:dec_string_single: (
         BeNode::STR(String::from("e")),
         "1:e"
         ),
-        string_more: (
+        enc_string_more:dec_string_more: (
         BeNode::STR(String::from("hola---hola")),
         "11:hola---hola"
         ),
-        list_basic: (
+        enc_list_basic:dec_list_basic: (
         BeNode::LIST(vec![BeNode::NUM(123), BeNode::NUM(456), BeNode::NUM(0)]),
         "li123ei456ei0ee"
         ),
-        list_mixed: (
+        enc_list_mixed:dec_list_mixed: (
         BeNode::LIST(vec![BeNode::STR(String::from("hola")),
                           BeNode::NUM(123)]),
         "l4:holai123ee"
         ),
-        list_strings: (
+        enc_list_strings:dec_list_strings: (
         BeNode::LIST(vec![BeNode::STR(String::from("hola")),
                           BeNode::STR(String::from("hello")),
                           BeNode::STR(String::from("ciao"))]),
         "l4:hola5:hello4:ciaoe"
         ),
-        dict_simple: (
+        enc_dict_simple: dec_dict_simple: (
            BeNode::DICT(dict!(vec![("hola", "Pedro")])),
            "d4:hola5:Pedroe"
         ),
-        dict_three: (
+        enc_dict_three: dec_dict_three: (
            BeNode::DICT(dict!(vec![("hola", "Pedro"),
                                    ("hello", "William"), 
                                    ("|", "|")])),

@@ -1,6 +1,6 @@
-pub mod encoding;
+#[allow(unused_imports)]
 pub mod testsuite;
-use encoding::*;
+pub mod encoding;
 
 fn main() {
     println!("Hello rustorrent!");
