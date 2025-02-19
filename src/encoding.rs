@@ -11,7 +11,7 @@ macro_rules! _i64_overflow_check {
         }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BeNode
 {
     NUM(i64),
