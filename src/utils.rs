@@ -1,7 +1,13 @@
+pub mod sha;
 use crate::encoding::*;
+use crate::utils::sha::*;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::fs::DirEntry;
+
+// A char is four bytes so maybe lower this bound to 64_000
+pub const BLOCK_SIZE:usize = 256_000;
 
 #[macro_export]
 macro_rules! BeSTR {
@@ -43,4 +49,54 @@ pub fn build_torrent(dir: &Path,
             }
         }
         Ok(())
+}
+
+
+pub fn hash_folder(dir: &Path, hash: &mut Sha1) -> String {
+            fs::read_dir(dir).expect("READ_DIR FAILED")
+                .fold(String::new(), |acc, dir_entry| 
+                                     hash_decision(dir_entry, hash, acc)
+                )
+}
+
+fn hash_decision(dir_entry: Result<DirEntry, std::io::Error>,
+                 hash: &mut Sha1,
+                 acc:String) -> String
+{
+    let entry = dir_entry.unwrap();
+    let path = entry.path();
+    if path.is_dir() {
+        acc + &hash_folder(&path, hash)
+    }
+    else {
+        let content = fs::read_to_string(path)
+            .expect("FAILED TO READ FILE");
+        let f_part = content.chars()
+            .take(BLOCK_SIZE - hash.size)
+            .collect::<String>();
+        let sec_part = content.chars()
+            .skip(BLOCK_SIZE - hash.size)
+            .collect::<String>();
+
+        let mut res = acc;
+
+        hash.update(&f_part.as_bytes());
+
+        if hash.size == BLOCK_SIZE {
+            hash.digest();
+            res += &hash.digest_string();
+            hash.clear();
+        }
+
+        sec_part.as_bytes().chunks(BLOCK_SIZE)
+            .for_each(|slice| {
+                    hash.update(&slice);
+                    if hash.size == BLOCK_SIZE {
+                    hash.digest();
+                    res += &hash.digest_string();
+                    hash.clear();
+                    }
+                    });
+        return res;
+    }
 }

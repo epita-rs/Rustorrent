@@ -1,4 +1,5 @@
 use crate::encoding::*;
+use crate::utils::sha::*;
 use crate::utils::*;
 use crate::BeSTR;
 use std::path::Path;
@@ -16,6 +17,44 @@ pub struct Torrent {
 }
 
 impl Torrent {
+    fn newNode(path:String) -> BeNode
+    {
+        let path = Path::new(&path);
+
+        if !path.exists() {
+            panic!("The given path is not valid.");
+        }
+
+        let announce = String::from("http://localhost:8080"); 
+
+        let mut dict = vec![(String::from("name"), BeSTR!(stringify!(path)))];
+
+        if path.is_dir() {
+            let mut files = BeNode::LIST(vec![]);
+            let _ = build_torrent(path, &mut vec![], &mut files);
+        }
+        else
+        {
+            let length = BeNode::NUM(path.metadata()
+                                         .expect("METADATA FAILED")
+                                         .len() as i64);
+            dict.push((String::from("length"), length));
+        }
+
+        let info = BeNode::DICT(dict);
+
+        let pieces_len = BLOCK_SIZE;
+        let mut hash = Sha1::new();
+        let pieces = hash_folder(path, &mut hash);
+        
+        // TODO MAYBE sort in alphabetic order
+
+        BeNode::DICT(vec![(String::from("announce"), 
+                                    BeSTR!(announce.clone()))
+                                    ,(String::from("info"), info) 
+                                    ])
+    }
+    // TODO
     fn new(path:String) -> Torrent
     {
         let path = Path::new(&path);
@@ -28,9 +67,7 @@ impl Torrent {
 
         if path.is_dir() {
             let mut files = BeNode::LIST(vec![]);
-            build_torrent(path, &mut vec![], &mut files);
-            // TODO total length
-            // TODO progressively hash the folder/file content
+            let _ = build_torrent(path, &mut vec![], &mut files);
         }
         else
         {
@@ -50,6 +87,7 @@ impl Torrent {
         let author = String::from("Gustavo");
         let filename = String::from(stringify!(path.file_name()));
 
+        // TODO progressively hash the folder/file content
         let _node = BeNode::DICT(vec![(String::from("announce"), 
                                     BeSTR!(announce.clone()))
                                     ,(String::from("info"), info) 
