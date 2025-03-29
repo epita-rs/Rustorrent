@@ -109,5 +109,4 @@ impl Sha1 {
     pub fn digest_raw(&self) -> String {
         sha1_arr(&self.variables).iter().map(|x| char::from(*x)).collect::<String>()
     }
-    //char::from_u32(x.clone()).unwrap()
 }
