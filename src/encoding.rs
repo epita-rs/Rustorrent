@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 // TODO recover from overflow
 macro_rules! _i64_overflow_check {
         ($args:expr) => {
@@ -17,7 +19,7 @@ pub enum BeNode
     NUM(i64),
     STR(String),
     LIST(Vec<BeNode>),
-    DICT(Vec<(String, BeNode)>),
+    DICT(BTreeMap<String, BeNode>),
 }
 
 pub fn be_decode(input: String) -> BeNode
@@ -109,18 +111,19 @@ pub fn be_decode_dict(buffer: &Vec<char>, idx: &mut usize) -> BeNode
     // eat 'd'
     *idx += 1;
 
-    let mut dict:Vec<(String, BeNode)> = vec![];
+    let mut dict:BTreeMap<String, BeNode> = BTreeMap::new();
     while *idx < buffer.len() {
         match buffer[*idx] {
             'e' => break,
             // eat using be_decode_rec
-            _ => dict.push(
-                    ( match be_decode_str(buffer, idx) {
+            _ => {
+                let _ = dict.insert(
+                    match be_decode_str(buffer, idx) {
                           BeNode::STR(string) => string,
                           _ => panic!("failed to decode. Key should be a string.")
                         },
-                    be_decode_rec(buffer, idx))
-                    ),
+                    be_decode_rec(buffer, idx));
+                },
         }
     }
 
@@ -145,9 +148,9 @@ pub fn be_encode(node: &BeNode) -> String
                                 "e"
                                 ].join(""),
         BeNode::DICT(dict) => ["d", 
-                               &dict.iter()
+                                &dict.iter()
                                .map(|(key, val)| 
-                      be_encode(&BeNode::STR(key.clone())) + &be_encode(val)
+                                    be_encode(&BeNode::STR(key.clone())) + &be_encode(val)
                                 )
                                .collect::<Vec<String>>()
                                .join(""),

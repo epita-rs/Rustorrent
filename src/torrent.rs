@@ -1,9 +1,9 @@
 use crate::encoding::*;
-use crate::utils::sha::*;
 use crate::utils::*;
 use crate::BeSTR;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use std::collections::BTreeMap;
 
 pub struct Torrent {
     // MANDATORY BEP 003
@@ -17,7 +17,7 @@ pub struct Torrent {
 }
 
 impl Torrent {
-    fn newNode(path:String) -> BeNode
+    pub fn newNode(path:String) -> BeNode
     {
         let path = Path::new(&path);
 
@@ -27,33 +27,38 @@ impl Torrent {
 
         let announce = String::from("http://localhost:8080"); 
 
-        let mut dict = vec![(String::from("name"), BeSTR!(stringify!(path)))];
+        let mut dict = BTreeMap::from([
+            (String::from("name"), BeNode::STR(String::from(path.file_name().unwrap().to_str().unwrap())))
+        ]);
 
         if path.is_dir() {
             let mut files = BeNode::LIST(vec![]);
             let _ = build_torrent(path, &mut vec![], &mut files);
+            dict.insert(String::from("files"), files);
+
+            let relpath = split_path(path);
+            let relpath = filepath_concat(&PathBuf::new(),&relpath);
+
+            let pieces = BeNode::STR(produce_pieces_hash(relpath, dict.get("files").unwrap()));
+            dict.insert(String::from("pieces"), pieces);
         }
         else
         {
             let length = BeNode::NUM(path.metadata()
                                          .expect("METADATA FAILED")
                                          .len() as i64);
-            dict.push((String::from("length"), length));
+            dict.insert(String::from("length"), length);
         }
 
+        dict.insert(String::from("pieces length"), BeNode::NUM(BLOCK_SIZE as i64));
+        
         let info = BeNode::DICT(dict);
 
-        let pieces_len = BLOCK_SIZE;
-        let mut hash = Sha1::new();
-        let pieces = hash_folder(path, &mut hash);
-        
-        // TODO MAYBE sort in alphabetic order
-
-        BeNode::DICT(vec![(String::from("announce"), 
-                                    BeSTR!(announce.clone()))
+        BeNode::DICT(BTreeMap::from([(String::from("announce"), BeSTR!(announce.clone()))
                                     ,(String::from("info"), info) 
-                                    ])
+                                    ]))
     }
+    
     // TODO
     fn new(path:String) -> Torrent
     {
@@ -63,7 +68,7 @@ impl Torrent {
             panic!("The given path is not valid.");
         }
 
-        let mut dict = vec![(String::from("name"), BeSTR!(stringify!(path)))];
+        let mut dict = BTreeMap::from([(String::from("name"), BeSTR!(stringify!(path)))]);
 
         if path.is_dir() {
             let mut files = BeNode::LIST(vec![]);
@@ -74,7 +79,7 @@ impl Torrent {
             let length = BeNode::NUM(path.metadata()
                                          .expect("METADATA FAILED")
                                          .len() as i64);
-            dict.push((String::from("length"), length));
+            dict.insert(String::from("length"), length);
         }
 
         let info = BeNode::DICT(dict);
@@ -88,10 +93,10 @@ impl Torrent {
         let filename = String::from(stringify!(path.file_name()));
 
         // TODO progressively hash the folder/file content
-        let _node = BeNode::DICT(vec![(String::from("announce"), 
-                                    BeSTR!(announce.clone()))
-                                    ,(String::from("info"), info) 
-                                    ]);
+        let _node = BeNode::DICT(BTreeMap::from([
+                                     (String::from("announce"), BeSTR!(announce.clone())),
+                                     (String::from("info"), info) 
+                                    ]));
 
         let pieces = String::new();
         let pieces_len = 0;
