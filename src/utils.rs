@@ -85,7 +85,7 @@ pub fn produce_pieces_hash(relpath:PathBuf, node_list: &BeNode) -> String {
                 _ => panic!("expecting BeNode::DICT")
             });
             if hash.size != 0 {
-                pieces += &hash.digest_string();
+                pieces += &hash.digest_raw();
             }
             pieces
         },
@@ -98,7 +98,7 @@ fn digest_if_full(hash: &mut Sha1, res: &mut String)
     // empties hash if full
     if hash.size == BLOCK_SIZE {
             hash.digest();
-            *res += &hash.digest_string();
+            *res += &hash.digest_raw();
             hash.clear();
     }
 }
